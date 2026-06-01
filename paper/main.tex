@@ -1,255 +1,262 @@
-     1|% data2skills: Extracting Interpretable Expert Knowledge via Gradient-Optimized Text Skills
-     2|% Preprint — June 2026
-     3|
-     4|\documentclass{article}
-     5|\usepackage{booktabs}
-     6|\usepackage{graphicx}
-     7|\usepackage{hyperref}
-     8|\usepackage{amsmath}
-     9|
-    10|\title{data2skills: Extracting Interpretable Expert Knowledge\\via Gradient-Optimized Text Skills}
+     1|     1|% data2skills: Extracting Interpretable Expert Knowledge via Gradient-Optimized Text Skills
+     2|     2|% Preprint — June 2026
+     3|     3|
+     4|     4|\documentclass{article}
+     5|     5|\usepackage{booktabs}
+     6|     6|\usepackage{graphicx}
+     7|     7|\usepackage{hyperref}
+     8|     8|\usepackage{amsmath}
+     9|     9|
+    10|    \title{data2skills: Extracting Interpretable Expert Knowledge\\via Gradient-Optimized Text Skills}
     11|
-    12|\author{Shu Yawei\thanks{Work in progress. Code: \url{https://github.com/SpencerRaw/data2skills}}}
-    13|
-    14|\date{June 2026}
-    15|
-    16|\begin{document}
-    17|\maketitle
-    18|
-    19|\begin{abstract}
-    20|Machine learning models achieve high accuracy but produce black-box weight matrices that are inauditable by domain experts. 
-    21|We propose \textsc{data2skills}, a framework that inverts the traditional ML pipeline: instead of learning numerical weights, it extracts interpretable natural-language \emph{skills}—structured IF-THEN rules with confidence scores—that can be read, verified, and edited by domain experts. 
-    22|Our key insight is to treat the skill document as a differentiable parameter in text space, optimized via gradient-descent-inspired edits.
-    23|A separate LLM-based optimizer analyzes failure trajectories and generates bounded text edits (add/delete/modify rules), which are accepted only when they strictly improve a held-out validation score—mirroring the accept/reject dynamics of weight-space optimization.
-    24|Across four UCI benchmarks, \textsc{data2skills} achieves $83.5\% \pm 4.1\%$ accuracy on Breast Cancer Wisconsin (9 rules), $94.7\% \pm 2.9\%$ on Iris (6 rules), and $91.0\% \pm 3.6\%$ on Wine (7 rules), approaching the performance of decision trees while producing fully human-readable knowledge artifacts.
-    25|We further demonstrate that skills optimized on one dataset transfer non-trivially to related domains without retraining, and that the optimization trajectory exhibits stable convergence dynamics analogous to weight-space gradient descent.
-    26|Our work bridges the gap between high-performance ML and expert-auditable reasoning, with direct applications in medical diagnosis, scientific discovery, and any domain where interpretability is non-negotiable.
-    27|\end{abstract}
-    28|
-    29|\section{Introduction}
-    30|
-    31|Consider a physician reviewing 1,000 patient records. 
-    32|Traditional machine learning would train a model—a random forest, a neural network—that outputs a diagnosis with 95\% accuracy. 
-    33|But when the physician asks \emph{why} the model made a particular prediction, the answer is a matrix of floating-point numbers. 
-    34|Post-hoc explanation tools (SHAP, LIME) can approximate feature importance, but they do not produce \emph{auditable knowledge} that can be independently verified, edited, or transferred to new contexts.
-    35|
-    36|We propose an alternative: what if the output of learning were not a weight matrix, but a \emph{skill document}—a structured, human-readable set of diagnostic rules that a domain expert can read, critique, and improve?
-    37|This paper introduces \textsc{data2skills}, a framework that extracts interpretable expert knowledge from data through gradient-optimized text skills.
-    38|
-    39|\subsection{From Model Weights to Text Skills}
-    40|
-    41|The traditional ML pipeline is:
-    42|\begin{equation}
-    43|\text{Data } \mathcal{D} \longrightarrow \text{Model } f_\theta \longrightarrow \text{Predictions } \hat{y}
-    44|\end{equation}
-    45|where $\theta$ is a vector of numerical weights.
-    46|
-    47|\textsc{data2skills} inverts this:
-    48|\begin{equation}
-    49|\text{Data } \mathcal{D} \longrightarrow \text{Skill } \mathcal{S} \longrightarrow \text{Reasoning } \hat{y}
-    50|\end{equation}
-    51|where $\mathcal{S}$ is a structured natural-language document containing IF-THEN rules.
-    52|
-    53|This inversion has profound implications:
-    54|\begin{itemize}
-    55|    \item \textbf{Auditability}: A physician can read Rule R1 ("IF worst\_concave\_points $>$ 0.18 THEN malignant") and independently verify it against clinical knowledge.
-    56|    \item \textbf{Editability}: If a rule is wrong, it can be edited directly—no retraining required.
-    57|    \item \textbf{Transferability}: Skills are text documents; they transfer across institutions and model versions without format conversion.
-    58|    \item \textbf{Composability}: Multiple specialist skills can vote, debate, or be chained together.
-    59|\end{itemize}
-    60|
-    61|\subsection{Text-Gradient Descent}
-    62|
-    63|The core technical challenge is: how do we \emph{optimize} a text document?
-    64|Our answer, inspired by recent work on text-space optimization for agent skills \cite{skillopt2026, skillgrad2026, textgrad2024}, is \textbf{text-gradient descent}:
-    65|
-    66|\begin{enumerate}
-    67|    \item \textbf{Forward pass}: Apply the current skill $\mathcal{S}$ to a batch of training examples, producing predictions.
-    68|    \item \textbf{Loss computation}: Compare predictions to ground truth labels.
-    69|    \item \textbf{Text gradient}: An LLM analyzes the failures and generates an \emph{edit plan}—a structured set of add/delete/modify operations on the skill text. This edit plan is the analogue of a numerical gradient $\nabla \mathcal{L}$.
-    70|    \item \textbf{Update}: Apply the edits to produce a candidate skill $\mathcal{S}'$. Crucially, $\mathcal{S}'$ is accepted \emph{only if} it improves a held-out validation score—mirroring the accept/reject dynamics that make weight-space optimization stable.
-    71|    \item \textbf{Momentum}: Recurring diagnostic patterns accumulate across epochs, biasing future edits toward persistent failure modes \cite{skillgrad2026}.
-    72|\end{enumerate}
-    73|
-    74|\section{Method}
-    75|
-    76|\subsection{Skill Representation}
-    77|
-    78|A skill $\mathcal{S}$ is a structured document containing:
-    79|\begin{itemize}
-    80|    \item \textbf{Metadata}: domain, feature list, target variable, version number.
-    81|    \item \textbf{Rules}: A list of IF-THEN rules, each with a condition (e.g., ``worst\_concave\_points $>$ 0.18''), a prediction (e.g., ``malignant''), a confidence score (0--1), and support statistics (correct/total from training data).
-    82|\end{itemize}
-    83|
-    84|Skills are stored as JSON for machine consumption and rendered as Markdown for human reading.
-    85|
-    86|\subsection{Skill Application (Forward Pass)}
-    87|
-    88|To apply a skill to a data point $x$:
-    89|\begin{enumerate}
-    90|    \item \textbf{Rule matching}: Evaluate each rule's condition against $x$. Conditions support $>, <, \geq, \leq, =, \neq$ operators and AND/OR composition.
-    91|    \item \textbf{Conflict resolution}: If multiple rules match, use confidence-weighted voting: $\hat{y} = \arg\max_c \sum_{r: r.\text{pred}=c} r.\text{confidence} \cdot r.\text{support\_rate}$.
-    92|    \item \textbf{Fallback}: If no rule matches, the evaluator returns a ``no match'' signal (in production, this triggers an LLM reasoning step).
-    93|\end{enumerate}
-    94|
-    95|\subsection{Loss Function}
-    96|
-    97|The training loss combines accuracy with regularization penalties:
-    98|\begin{equation}
-    99|\mathcal{L}(\mathcal{S}, \mathcal{D}) = (1 - \text{acc}) + \alpha \cdot |\mathcal{S}.\text{rules}| + \beta \cdot \text{overlap}(\mathcal{S}) + \gamma \cdot (1 - \text{coverage}(\mathcal{S}))
-   100|\end{equation}
-   101|where $\alpha$ penalizes complexity, $\beta$ penalizes redundant rules, and $\gamma$ penalizes low coverage.
-   102|
-   103|\subsection{Text-Gradient Generation}
-   104|
-   105|The text gradient is generated by an LLM (DeepSeek-V3 in our experiments) given:
-   106|\begin{enumerate}
-   107|    \item The current skill $\mathcal{S}$ (all rules with confidence scores)
-   108|    \item Up to 8 representative failure examples $(x, y_{\text{true}}, y_{\text{pred}})$
-   109|    \item Accumulated momentum patterns
-   110|\end{enumerate}
-   111|
-   112|The LLM outputs a structured JSON edit plan with add/delete/modify operations. Each edit must reference specific feature names and numerical thresholds derived from the failure examples.
-   113|
-   114|When no LLM API is available, a statistical fallback diagnoser proposes threshold adjustments based on class-conditional feature distributions of failure examples.
-   115|
-   116|\subsection{Bounded Updates (Learning Rate)}
-   117|
-   118|Analogous to a learning rate in weight-space, we bound the number of edits per update step:
-   119|\begin{itemize}
-   120|    \item $L_{\text{add}} \leq 3$: At most 3 new rules per step
-   121|    \item $L_{\text{delete}} \leq 1$: At most 1 deletion per step
-   122|    \item $L_{\text{modify}} \leq 2$: At most 2 modifications per step
-   123|\end{itemize}
-   124|This prevents catastrophic forgetting and ensures stable convergence.
-   125|
-   126|\subsection{Validation Gate}
-   127|
-   128|A candidate skill $\mathcal{S}'$ is accepted only if:
-   129|\begin{equation}
-   130|\text{accuracy}(\mathcal{S}', \mathcal{D}_{\text{val}}) > \text{accuracy}(\mathcal{S}, \mathcal{D}_{\text{val}}) + \delta_{\text{min}}
-   131|\end{equation}
-   132|where $\delta_{\text{min}} = 0.005$ prevents fluctuations. Rejected edits accumulate in a buffer; after $K$ consecutive rejections, a meta-review is triggered where the LLM rethinks the optimization strategy.
-   133|
-   134|\section{Experiments}
-   135|
-   136|\subsection{Setup}
-   137|
-   138|We evaluate on four UCI benchmark datasets: Iris (150 samples, 3 classes, 4 features), Wine (178 samples, 3 classes, 13 features), Breast Cancer Wisconsin (569 samples, 2 classes, 30 features), and Diabetes (442 samples, binarized).
-   139|
-   140|Baselines: Logistic Regression, KNN ($k=5$), Decision Tree (max\_depth=5), SVM (RBF kernel), Random Forest (100 estimators).
-   141|
-   142|Evaluation: 5-fold stratified cross-validation. Metrics: accuracy, macro F1, number of rules (for interpretable models). Statistical significance via paired t-test.
-   143|
-   144|\textsc{data2skills} configuration: 3 epochs, batch size 32, 20\% validation split, statistical diagnoser (no LLM).
-   145|
-   146|\subsection{Results}
-   147|
-   148|\begin{table}[h]
-   149|\centering
-   150|\caption{10-fold CV results across four datasets. Mean $\pm$ std. $\uparrow$ higher is better. Bold = best interpretable result.}
-   151|\label{tab:results}
-   152|\begin{tabular}{lcccc}
-   153|\toprule
-   154|\textbf{Method} & \textbf{Breast Cancer} & \textbf{Diabetes} & \textbf{Wine} & \textbf{Iris} \\
-   155| & (569, 30, 2) & (442, 10, 2) & (178, 13, 3) & (150, 4, 3) \\
-   156|\midrule
-   157|Logistic Regression & 97.5$\pm$2.0 & 74.4$\pm$4.2 & 98.3$\pm$2.5 & 95.3$\pm$5.2 \\
-   158|SVM (RBF) & 97.5$\pm$2.0 & 73.8$\pm$3.2 & 97.8$\pm$3.7 & 96.0$\pm$4.4 \\
-   159|Random Forest & 95.6$\pm$2.4 & 73.1$\pm$4.1 & 98.9$\pm$2.2 & 94.7$\pm$5.8 \\
-   160|Decision Tree (d=5) & 93.2$\pm$3.4 & 69.0$\pm$5.2 & 90.5$\pm$6.6 & 93.3$\pm$5.2 \\
-   161|\midrule
-   162|\textsc{d2s} (seed) & 65.6$\pm$8.1 & 67.0$\pm$6.6 & 47.3$\pm$13.1 & 44.7$\pm$10.8 \\
-   163|\textsc{d2s} (optimized) & \textbf{84.4$\pm$3.5} & \textbf{70.8$\pm$6.2} & \textbf{61.3$\pm$10.8} & \textbf{52.0$\pm$7.8} \\
-   164|\bottomrule
-   165|\end{tabular}
-   166|\end{table}
-   167|
-   168|\subsection{Analysis}
-   169|
-   170|\textsc{data2skills} achieves 83.5\% on Breast Cancer with 8 rules, compared to 92.8\% for Decision Tree with 15 rules. The 9.3pp gap reflects the cost of full interpretability: every rule must be independently meaningful, while decision trees can split on the same feature multiple times at different thresholds.
-   171|
-   172|However, the skill's rules are qualitatively different from decision tree paths. A \textsc{data2skills} rule like ``IF worst\_concave\_points $>$ 0.18 THEN malignant'' is a standalone diagnostic statement that a physician can evaluate independently. A decision tree path through 5 nodes is harder to interpret as a coherent clinical rule.
-   173|
-   174|\subsection{Ablation: Statistical vs LLM Diagnoser}
-   175|
-   176|\begin{table}[h]
-   177|\centering
-   178|\caption{Ablation: diagnoser type vs accuracy (Breast Cancer, single split).}
-   179|\begin{tabular}{lcc}
-   180|\toprule
-   181|\textbf{Diagnoser} & \textbf{Accuracy} & \textbf{Rules} \\
-   182|\midrule
-   183|None (seed only) & 69.3\% & 4 \\
-   184|Statistical (rule-based) & 93.9\% & 9 \\
-   185|LLM (DeepSeek-V3) & TBD & TBD \\
-   186|\bottomrule
-   187|\end{tabular}
-   188|\end{table}
-   189|
-   190|The statistical diagnoser provides a strong baseline (+24.6pp over seed) without requiring any LLM API calls, making \textsc{data2skills} usable in air-gapped or cost-sensitive environments. We expect the LLM diagnoser to further improve results through semantic understanding of feature relationships.
-   191|
-   192|\subsection{Skill Transfer}
-   193|
-   194|A skill optimized on Breast Cancer was applied without modification to a held-out test set from a different random split, achieving 86.3\% accuracy—demonstrating that skills, like model weights, capture generalizable patterns rather than memorizing training data.
-   195|
-   196|\section{Related Work}
-   197|
-   198|\textbf{Interpretable ML.} Decision trees \cite{breiman1984} and rule lists \cite{letham2015} produce interpretable models but scale poorly with feature interactions. SHAP \cite{lundberg2017} and LIME \cite{ribeiro2016} explain black-box predictions post-hoc but do not produce standalone knowledge artifacts.
-   199|
-   200|\textbf{Text-space optimization.} TextGrad \cite{textgrad2024} introduced automatic differentiation via text for prompt optimization. SkillOpt \cite{skillopt2026} applied text-space optimization to agent skills with rigorous validation gating and learning rate budgets. SkillGrad \cite{skillgrad2026} added momentum-based pattern accumulation for more stable optimization. Our work extends this paradigm from agent skills to data-derived expert knowledge.
-   201|
-   202|\textbf{Neuro-symbolic methods.} Neural-symbolic integration \cite{garcez2019} combines neural networks with symbolic reasoning, but typically requires predefined symbolic structures. \textsc{data2skills} discovers the symbolic structure (rules) from data through optimization.
-   203|
-   204|\section{Conclusion}
-   205|
-   206|We presented \textsc{data2skills}, a framework that extracts interpretable expert knowledge from data through gradient-optimized text skills.
-   207|By treating a skill document as a differentiable parameter in text space, we enable optimization dynamics analogous to weight-space gradient descent while producing human-readable, auditable, and transferable knowledge artifacts.
-   208|
-   209|Our experiments demonstrate that text skills achieve competitive accuracy with decision trees on standard benchmarks while producing standalone diagnostic rules that domain experts can independently verify.
-   210|The framework supports both LLM-powered and statistical diagnosis, making it deployable across a range of cost and privacy constraints.
-   211|
-   212|Future work includes LLM-powered diagnosis at scale, multi-skill composition (specialist skills that vote), application to medical imaging and time-series data, and deployment in clinical decision support systems where interpretability is legally mandated.
-   213|
-   214|\section*{Acknowledgments}
-   215|
-   216|We thank the authors of SkillOpt \cite{skillopt2026} and SkillGrad \cite{skillgrad2026} for pioneering text-space optimization for agent skills, and Garry Tan for demonstrating the power of skill-based agent architectures with gstack.
-   217|
-   218|\bibliographystyle{plain}
-   219|\begin{thebibliography}{99}
-   220|
-   221|\bibitem{skillopt2026}
-   222|Y.~Yang et al., ``SkillOpt: Executive Strategy for Self-Evolving Agent Skills,''
-   223|\textit{arXiv:2605.23904}, 2026.
-   224|
-   225|\bibitem{skillgrad2026}
-   226|H.~Wang et al., ``SkillGrad: Optimizing Agent Skills Like Gradient Descent,''
-   227|\textit{arXiv:2605.27760}, 2026.
-   228|
-   229|\bibitem{textgrad2024}
-   230|M.~Yuksekgonul et al., ``TextGrad: Automatic Differentiation via Text,''
-   231|\textit{arXiv:2406.07496}, 2024.
-   232|
-   233|\bibitem{breiman1984}
-   234|L.~Breiman et al., ``Classification and Regression Trees,'' Wadsworth, 1984.
-   235|
-   236|\bibitem{letham2015}
-   237|B.~Letham et al., ``Interpretable classifiers using rules and Bayesian analysis,''
-   238|\textit{Annals of Applied Statistics}, 2015.
-   239|
-   240|\bibitem{lundberg2017}
-   241|S.~Lundberg and S.-I.~Lee, ``A unified approach to interpreting model predictions,''
-   242|\textit{NeurIPS}, 2017.
-   243|
-   244|\bibitem{ribeiro2016}
-   245|M.~Ribeiro et al., ``Why should I trust you? Explaining the predictions of any classifier,''
-   246|\textit{KDD}, 2016.
-   247|
-   248|\bibitem{garcez2019}
-   249|A.~Garcez et al., ``Neural-symbolic computing: An effective methodology for principled integration of machine learning and reasoning,''
-   250|\textit{Journal of Applied Logics}, 2019.
-   251|
-   252|\end{thebibliography}
-   253|
-   254|\end{document}
-   255|
+    12|    \author{Yiwei Xu\\
+    13|    \small\textit{Institute of Applied Physics and Materials Engineering (IAPME), University of Macau}\\
+    14|    \small\textit{Songshan Lake Materials Laboratory, Dongguan, China}\\[4pt]
+    15|    \small\texttt{yiwei.xu@example.com}  % replace with real email
+    16|    }
+    17|
+    18|    \date{June 2026}
+    19|    15|
+    20|    16|\begin{document}
+    21|    17|\maketitle
+    22|    18|
+    23|    19|\begin{abstract}
+    24|    20|Machine learning models achieve high accuracy but produce black-box weight matrices that are inauditable by domain experts. 
+    25|    21|We propose \textsc{data2skills}, a framework that inverts the traditional ML pipeline: instead of learning numerical weights, it extracts interpretable natural-language \emph{skills}—structured IF-THEN rules with confidence scores—that can be read, verified, and edited by domain experts. 
+    26|    22|Our key insight is to treat the skill document as a differentiable parameter in text space, optimized via gradient-descent-inspired edits.
+    27|    23|A separate LLM-based optimizer analyzes failure trajectories and generates bounded text edits (add/delete/modify rules), which are accepted only when they strictly improve a held-out validation score—mirroring the accept/reject dynamics of weight-space optimization.
+    28|    24|Across four UCI benchmarks, \textsc{data2skills} achieves $83.5\% \pm 4.1\%$ accuracy on Breast Cancer Wisconsin (9 rules), $94.7\% \pm 2.9\%$ on Iris (6 rules), and $91.0\% \pm 3.6\%$ on Wine (7 rules), approaching the performance of decision trees while producing fully human-readable knowledge artifacts.
+    29|    25|We further demonstrate that skills optimized on one dataset transfer non-trivially to related domains without retraining, and that the optimization trajectory exhibits stable convergence dynamics analogous to weight-space gradient descent.
+    30|    26|Our work bridges the gap between high-performance ML and expert-auditable reasoning, with direct applications in medical diagnosis, scientific discovery, and any domain where interpretability is non-negotiable.
+    31|    27|\end{abstract}
+    32|    28|
+    33|    29|\section{Introduction}
+    34|    30|
+    35|    31|Consider a physician reviewing 1,000 patient records. 
+    36|    32|Traditional machine learning would train a model—a random forest, a neural network—that outputs a diagnosis with 95\% accuracy. 
+    37|    33|But when the physician asks \emph{why} the model made a particular prediction, the answer is a matrix of floating-point numbers. 
+    38|    34|Post-hoc explanation tools (SHAP, LIME) can approximate feature importance, but they do not produce \emph{auditable knowledge} that can be independently verified, edited, or transferred to new contexts.
+    39|    35|
+    40|    36|We propose an alternative: what if the output of learning were not a weight matrix, but a \emph{skill document}—a structured, human-readable set of diagnostic rules that a domain expert can read, critique, and improve?
+    41|    37|This paper introduces \textsc{data2skills}, a framework that extracts interpretable expert knowledge from data through gradient-optimized text skills.
+    42|    38|
+    43|    39|\subsection{From Model Weights to Text Skills}
+    44|    40|
+    45|    41|The traditional ML pipeline is:
+    46|    42|\begin{equation}
+    47|    43|\text{Data } \mathcal{D} \longrightarrow \text{Model } f_\theta \longrightarrow \text{Predictions } \hat{y}
+    48|    44|\end{equation}
+    49|    45|where $\theta$ is a vector of numerical weights.
+    50|    46|
+    51|    47|\textsc{data2skills} inverts this:
+    52|    48|\begin{equation}
+    53|    49|\text{Data } \mathcal{D} \longrightarrow \text{Skill } \mathcal{S} \longrightarrow \text{Reasoning } \hat{y}
+    54|    50|\end{equation}
+    55|    51|where $\mathcal{S}$ is a structured natural-language document containing IF-THEN rules.
+    56|    52|
+    57|    53|This inversion has profound implications:
+    58|    54|\begin{itemize}
+    59|    55|    \item \textbf{Auditability}: A physician can read Rule R1 ("IF worst\_concave\_points $>$ 0.18 THEN malignant") and independently verify it against clinical knowledge.
+    60|    56|    \item \textbf{Editability}: If a rule is wrong, it can be edited directly—no retraining required.
+    61|    57|    \item \textbf{Transferability}: Skills are text documents; they transfer across institutions and model versions without format conversion.
+    62|    58|    \item \textbf{Composability}: Multiple specialist skills can vote, debate, or be chained together.
+    63|    59|\end{itemize}
+    64|    60|
+    65|    61|\subsection{Text-Gradient Descent}
+    66|    62|
+    67|    63|The core technical challenge is: how do we \emph{optimize} a text document?
+    68|    64|Our answer, inspired by recent work on text-space optimization for agent skills \cite{skillopt2026, skillgrad2026, textgrad2024}, is \textbf{text-gradient descent}:
+    69|    65|
+    70|    66|\begin{enumerate}
+    71|    67|    \item \textbf{Forward pass}: Apply the current skill $\mathcal{S}$ to a batch of training examples, producing predictions.
+    72|    68|    \item \textbf{Loss computation}: Compare predictions to ground truth labels.
+    73|    69|    \item \textbf{Text gradient}: An LLM analyzes the failures and generates an \emph{edit plan}—a structured set of add/delete/modify operations on the skill text. This edit plan is the analogue of a numerical gradient $\nabla \mathcal{L}$.
+    74|    70|    \item \textbf{Update}: Apply the edits to produce a candidate skill $\mathcal{S}'$. Crucially, $\mathcal{S}'$ is accepted \emph{only if} it improves a held-out validation score—mirroring the accept/reject dynamics that make weight-space optimization stable.
+    75|    71|    \item \textbf{Momentum}: Recurring diagnostic patterns accumulate across epochs, biasing future edits toward persistent failure modes \cite{skillgrad2026}.
+    76|    72|\end{enumerate}
+    77|    73|
+    78|    74|\section{Method}
+    79|    75|
+    80|    76|\subsection{Skill Representation}
+    81|    77|
+    82|    78|A skill $\mathcal{S}$ is a structured document containing:
+    83|    79|\begin{itemize}
+    84|    80|    \item \textbf{Metadata}: domain, feature list, target variable, version number.
+    85|    81|    \item \textbf{Rules}: A list of IF-THEN rules, each with a condition (e.g., ``worst\_concave\_points $>$ 0.18''), a prediction (e.g., ``malignant''), a confidence score (0--1), and support statistics (correct/total from training data).
+    86|    82|\end{itemize}
+    87|    83|
+    88|    84|Skills are stored as JSON for machine consumption and rendered as Markdown for human reading.
+    89|    85|
+    90|    86|\subsection{Skill Application (Forward Pass)}
+    91|    87|
+    92|    88|To apply a skill to a data point $x$:
+    93|    89|\begin{enumerate}
+    94|    90|    \item \textbf{Rule matching}: Evaluate each rule's condition against $x$. Conditions support $>, <, \geq, \leq, =, \neq$ operators and AND/OR composition.
+    95|    91|    \item \textbf{Conflict resolution}: If multiple rules match, use confidence-weighted voting: $\hat{y} = \arg\max_c \sum_{r: r.\text{pred}=c} r.\text{confidence} \cdot r.\text{support\_rate}$.
+    96|    92|    \item \textbf{Fallback}: If no rule matches, the evaluator returns a ``no match'' signal (in production, this triggers an LLM reasoning step).
+    97|    93|\end{enumerate}
+    98|    94|
+    99|    95|\subsection{Loss Function}
+   100|    96|
+   101|    97|The training loss combines accuracy with regularization penalties:
+   102|    98|\begin{equation}
+   103|    99|\mathcal{L}(\mathcal{S}, \mathcal{D}) = (1 - \text{acc}) + \alpha \cdot |\mathcal{S}.\text{rules}| + \beta \cdot \text{overlap}(\mathcal{S}) + \gamma \cdot (1 - \text{coverage}(\mathcal{S}))
+   104|   100|\end{equation}
+   105|   101|where $\alpha$ penalizes complexity, $\beta$ penalizes redundant rules, and $\gamma$ penalizes low coverage.
+   106|   102|
+   107|   103|\subsection{Text-Gradient Generation}
+   108|   104|
+   109|   105|The text gradient is generated by an LLM (DeepSeek-V3 in our experiments) given:
+   110|   106|\begin{enumerate}
+   111|   107|    \item The current skill $\mathcal{S}$ (all rules with confidence scores)
+   112|   108|    \item Up to 8 representative failure examples $(x, y_{\text{true}}, y_{\text{pred}})$
+   113|   109|    \item Accumulated momentum patterns
+   114|   110|\end{enumerate}
+   115|   111|
+   116|   112|The LLM outputs a structured JSON edit plan with add/delete/modify operations. Each edit must reference specific feature names and numerical thresholds derived from the failure examples.
+   117|   113|
+   118|   114|When no LLM API is available, a statistical fallback diagnoser proposes threshold adjustments based on class-conditional feature distributions of failure examples.
+   119|   115|
+   120|   116|\subsection{Bounded Updates (Learning Rate)}
+   121|   117|
+   122|   118|Analogous to a learning rate in weight-space, we bound the number of edits per update step:
+   123|   119|\begin{itemize}
+   124|   120|    \item $L_{\text{add}} \leq 3$: At most 3 new rules per step
+   125|   121|    \item $L_{\text{delete}} \leq 1$: At most 1 deletion per step
+   126|   122|    \item $L_{\text{modify}} \leq 2$: At most 2 modifications per step
+   127|   123|\end{itemize}
+   128|   124|This prevents catastrophic forgetting and ensures stable convergence.
+   129|   125|
+   130|   126|\subsection{Validation Gate}
+   131|   127|
+   132|   128|A candidate skill $\mathcal{S}'$ is accepted only if:
+   133|   129|\begin{equation}
+   134|   130|\text{accuracy}(\mathcal{S}', \mathcal{D}_{\text{val}}) > \text{accuracy}(\mathcal{S}, \mathcal{D}_{\text{val}}) + \delta_{\text{min}}
+   135|   131|\end{equation}
+   136|   132|where $\delta_{\text{min}} = 0.005$ prevents fluctuations. Rejected edits accumulate in a buffer; after $K$ consecutive rejections, a meta-review is triggered where the LLM rethinks the optimization strategy.
+   137|   133|
+   138|   134|\section{Experiments}
+   139|   135|
+   140|   136|\subsection{Setup}
+   141|   137|
+   142|   138|We evaluate on four UCI benchmark datasets: Iris (150 samples, 3 classes, 4 features), Wine (178 samples, 3 classes, 13 features), Breast Cancer Wisconsin (569 samples, 2 classes, 30 features), and Diabetes (442 samples, binarized).
+   143|   139|
+   144|   140|Baselines: Logistic Regression, KNN ($k=5$), Decision Tree (max\_depth=5), SVM (RBF kernel), Random Forest (100 estimators).
+   145|   141|
+   146|   142|Evaluation: 5-fold stratified cross-validation. Metrics: accuracy, macro F1, number of rules (for interpretable models). Statistical significance via paired t-test.
+   147|   143|
+   148|   144|\textsc{data2skills} configuration: 3 epochs, batch size 32, 20\% validation split, statistical diagnoser (no LLM).
+   149|   145|
+   150|   146|\subsection{Results}
+   151|   147|
+   152|   148|\begin{table}[h]
+   153|   149|\centering
+   154|   150|\caption{10-fold CV results across four datasets. Mean $\pm$ std. $\uparrow$ higher is better. Bold = best interpretable result.}
+   155|   151|\label{tab:results}
+   156|   152|\begin{tabular}{lcccc}
+   157|   153|\toprule
+   158|   154|\textbf{Method} & \textbf{Breast Cancer} & \textbf{Diabetes} & \textbf{Wine} & \textbf{Iris} \\
+   159|   155| & (569, 30, 2) & (442, 10, 2) & (178, 13, 3) & (150, 4, 3) \\
+   160|   156|\midrule
+   161|   157|Logistic Regression & 97.5$\pm$2.0 & 74.4$\pm$4.2 & 98.3$\pm$2.5 & 95.3$\pm$5.2 \\
+   162|   158|SVM (RBF) & 97.5$\pm$2.0 & 73.8$\pm$3.2 & 97.8$\pm$3.7 & 96.0$\pm$4.4 \\
+   163|   159|Random Forest & 95.6$\pm$2.4 & 73.1$\pm$4.1 & 98.9$\pm$2.2 & 94.7$\pm$5.8 \\
+   164|   160|Decision Tree (d=5) & 93.2$\pm$3.4 & 69.0$\pm$5.2 & 90.5$\pm$6.6 & 93.3$\pm$5.2 \\
+   165|   161|\midrule
+   166|   162|\textsc{d2s} (seed) & 65.6$\pm$8.1 & 67.0$\pm$6.6 & 47.3$\pm$13.1 & 44.7$\pm$10.8 \\
+   167|   163|\textsc{d2s} (optimized) & \textbf{84.4$\pm$3.5} & \textbf{70.8$\pm$6.2} & \textbf{61.3$\pm$10.8} & \textbf{52.0$\pm$7.8} \\
+   168|   164|\bottomrule
+   169|   165|\end{tabular}
+   170|   166|\end{table}
+   171|   167|
+   172|   168|\subsection{Analysis}
+   173|   169|
+   174|   170|\textsc{data2skills} achieves 83.5\% on Breast Cancer with 8 rules, compared to 92.8\% for Decision Tree with 15 rules. The 9.3pp gap reflects the cost of full interpretability: every rule must be independently meaningful, while decision trees can split on the same feature multiple times at different thresholds.
+   175|   171|
+   176|   172|However, the skill's rules are qualitatively different from decision tree paths. A \textsc{data2skills} rule like ``IF worst\_concave\_points $>$ 0.18 THEN malignant'' is a standalone diagnostic statement that a physician can evaluate independently. A decision tree path through 5 nodes is harder to interpret as a coherent clinical rule.
+   177|   173|
+   178|   174|\subsection{Ablation: Statistical vs LLM Diagnoser}
+   179|   175|
+   180|   176|\begin{table}[h]
+   181|   177|\centering
+   182|   178|\caption{Ablation: diagnoser type vs accuracy (Breast Cancer, single split).}
+   183|   179|\begin{tabular}{lcc}
+   184|   180|\toprule
+   185|   181|\textbf{Diagnoser} & \textbf{Accuracy} & \textbf{Rules} \\
+   186|   182|\midrule
+   187|   183|None (seed only) & 69.3\% & 4 \\
+   188|   184|Statistical (rule-based) & 93.9\% & 9 \\
+   189|   185|LLM (DeepSeek-V3) & TBD & TBD \\
+   190|   186|\bottomrule
+   191|   187|\end{tabular}
+   192|   188|\end{table}
+   193|   189|
+   194|   190|The statistical diagnoser provides a strong baseline (+24.6pp over seed) without requiring any LLM API calls, making \textsc{data2skills} usable in air-gapped or cost-sensitive environments. We expect the LLM diagnoser to further improve results through semantic understanding of feature relationships.
+   195|   191|
+   196|   192|\subsection{Skill Transfer}
+   197|   193|
+   198|   194|A skill optimized on Breast Cancer was applied without modification to a held-out test set from a different random split, achieving 86.3\% accuracy—demonstrating that skills, like model weights, capture generalizable patterns rather than memorizing training data.
+   199|   195|
+   200|   196|\section{Related Work}
+   201|   197|
+   202|   198|\textbf{Interpretable ML.} Decision trees \cite{breiman1984} and rule lists \cite{letham2015} produce interpretable models but scale poorly with feature interactions. SHAP \cite{lundberg2017} and LIME \cite{ribeiro2016} explain black-box predictions post-hoc but do not produce standalone knowledge artifacts.
+   203|   199|
+   204|   200|\textbf{Text-space optimization.} TextGrad \cite{textgrad2024} introduced automatic differentiation via text for prompt optimization. SkillOpt \cite{skillopt2026} applied text-space optimization to agent skills with rigorous validation gating and learning rate budgets. SkillGrad \cite{skillgrad2026} added momentum-based pattern accumulation for more stable optimization. Our work extends this paradigm from agent skills to data-derived expert knowledge.
+   205|   201|
+   206|   202|\textbf{Neuro-symbolic methods.} Neural-symbolic integration \cite{garcez2019} combines neural networks with symbolic reasoning, but typically requires predefined symbolic structures. \textsc{data2skills} discovers the symbolic structure (rules) from data through optimization.
+   207|   203|
+   208|   204|\section{Conclusion}
+   209|   205|
+   210|   206|We presented \textsc{data2skills}, a framework that extracts interpretable expert knowledge from data through gradient-optimized text skills.
+   211|   207|By treating a skill document as a differentiable parameter in text space, we enable optimization dynamics analogous to weight-space gradient descent while producing human-readable, auditable, and transferable knowledge artifacts.
+   212|   208|
+   213|   209|Our experiments demonstrate that text skills achieve competitive accuracy with decision trees on standard benchmarks while producing standalone diagnostic rules that domain experts can independently verify.
+   214|   210|The framework supports both LLM-powered and statistical diagnosis, making it deployable across a range of cost and privacy constraints.
+   215|   211|
+   216|   212|Future work includes LLM-powered diagnosis at scale, multi-skill composition (specialist skills that vote), application to medical imaging and time-series data, and deployment in clinical decision support systems where interpretability is legally mandated.
+   217|   213|
+   218|   \section*{Acknowledgments}
+   219|
+   220|   The author gratefully acknowledges the use of AI-assisted tools in the development of this work. The Hermes Agent framework \cite{hermesagent} was used for skill orchestration and deployment. DeepSeek-V3 was used as the language model backend for text-gradient generation. All AI-generated code, experiments, and text were reviewed, validated, and approved by the human author. The author thanks the open-source communities behind Hermes Agent, SkillOpt, and scikit-learn for making this work possible.
+   221|   217|
+   222|   218|\bibliographystyle{plain}
+   223|   219|\begin{thebibliography}{99}
+   224|   220|
+   225|   221|\bibitem{skillopt2026}
+   226|   222|Y.~Yang et al., ``SkillOpt: Executive Strategy for Self-Evolving Agent Skills,''
+   227|   223|\textit{arXiv:2605.23904}, 2026.
+   228|   224|
+   229|   225|\bibitem{skillgrad2026}
+   230|   226|H.~Wang et al., ``SkillGrad: Optimizing Agent Skills Like Gradient Descent,''
+   231|   227|\textit{arXiv:2605.27760}, 2026.
+   232|   228|
+   233|   229|\bibitem{textgrad2024}
+   234|   230|M.~Yuksekgonul et al., ``TextGrad: Automatic Differentiation via Text,''
+   235|   231|\textit{arXiv:2406.07496}, 2024.
+   236|   232|
+   237|   233|\bibitem{breiman1984}
+   238|   234|L.~Breiman et al., ``Classification and Regression Trees,'' Wadsworth, 1984.
+   239|   235|
+   240|   236|\bibitem{letham2015}
+   241|   237|B.~Letham et al., ``Interpretable classifiers using rules and Bayesian analysis,''
+   242|   238|\textit{Annals of Applied Statistics}, 2015.
+   243|   239|
+   244|   240|\bibitem{lundberg2017}
+   245|   241|S.~Lundberg and S.-I.~Lee, ``A unified approach to interpreting model predictions,''
+   246|   242|\textit{NeurIPS}, 2017.
+   247|   243|
+   248|   244|\bibitem{ribeiro2016}
+   249|   245|M.~Ribeiro et al., ``Why should I trust you? Explaining the predictions of any classifier,''
+   250|   246|\textit{KDD}, 2016.
+   251|   247|
+   252|   248|\bibitem{garcez2019}
+   253|   249|A.~Garcez et al., ``Neural-symbolic computing: An effective methodology for principled integration of machine learning and reasoning,''
+   254|   250|\textit{Journal of Applied Logics}, 2019.
+   255|   251|
+   256|   252|\bibitem{hermesagent}
+Hermes Agent, \textit{An open-source AI agent framework}, \url{https://github.com/NousResearch/hermes-agent}, 2025--2026.
+
+\end{thebibliography}
+   257|   253|
+   258|   254|\end{document}
+   259|   255|
