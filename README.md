@@ -1,6 +1,7 @@
 # data2skills — Gradient-Optimized Expert Knowledge from Data
 
 [![Paper](https://github.com/SpencerRaw/data2skills/actions/workflows/compile-paper.yml/badge.svg)](https://github.com/SpencerRaw/data2skills/actions/workflows/compile-paper.yml)
+[![arXiv](https://img.shields.io/badge/arXiv-coming%20soon-b31b1b)](https://arxiv.org)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](https://pypi.org)
 
