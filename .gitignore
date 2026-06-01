@@ -7,3 +7,5 @@ venv/
 *.tmp
 *.log
 social-posts.md
+data/sle_safe.csv
+data/sle_safe_audit.json
