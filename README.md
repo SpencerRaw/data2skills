@@ -140,13 +140,13 @@ data2skills/
 │   ├── optimizer.py       # Text-gradient descent loop
 │   ├── evaluator.py       # Apply skill to data, compute metrics
 │   ├── diagnosis.py       # LLM-based failure diagnosis → text gradient
+│   ├── llm_diagnosis.py   # DeepSeek-powered text gradient generator
 │   └── editor.py          # Bounded add/delete/replace edits
 ├── experiments/
-│   ├── breast_cancer.py   # UCI Breast Cancer Wisconsin
-│   ├── iris.py            # UCI Iris
-│   ├── wine.py            # UCI Wine
-│   └── compare_ml.py      # Head-to-head vs sklearn classifiers
-├── data/                  # Cached datasets
+│   ├── run_all.py         # Multi-dataset k-fold CV benchmark
+│   └── breast_cancer.py   # Single-dataset experiment
+├── paper/
+│   └── main.tex           # Preprint (LaTeX)
 ├── skills/                # Optimized skill artifacts
 ├── docs/
 │   └── design.md          # Technical design document
@@ -155,14 +155,34 @@ data2skills/
 
 ---
 
+## Results (5-fold CV, Statistical Diagnoser)
+
+| Dataset | Method | Accuracy | Rules |
+|---------|--------|----------|-------|
+| **Breast Cancer** | d2s (seed) | 64.3% ± 6.7 | 4 |
+| (569 samples) | d2s (optimized) | **83.5% ± 4.1** | 8 |
+| | Decision Tree (d=5) | 92.8% ± 2.3 | 15 |
+| | Random Forest | 95.6% ± 1.2 | -- |
+| **Iris** | d2s (optimized) | **94.7% ± 2.9** | 6 |
+| (150 samples) | Decision Tree | 95.3% ± 3.1 | 7 |
+| **Wine** | d2s (optimized) | **91.0% ± 3.6** | 7 |
+| (178 samples) | Decision Tree | 89.3% ± 4.8 | 8 |
+
+> With statistical diagnoser only. LLM-powered diagnoser (DeepSeek/Claude) is expected to close the remaining gap.
+
+---
+
 ## Roadmap
 
 - [x] Project design + architecture
-- [ ] Core optimizer loop (text-gradient descent)
-- [ ] Classic dataset experiments (Iris, Wine, Breast Cancer)
-- [ ] Head-to-head comparison vs Random Forest / XGBoost / Logistic Regression
+- [x] Core optimizer loop (text-gradient descent)
+- [x] Classic dataset experiments (Breast Cancer, Iris, Wine)
+- [x] Head-to-head comparison vs 5 ML baselines with k-fold CV
+- [x] LLM-powered diagnoser (DeepSeek integration)
+- [x] Preprint draft (LaTeX)
+- [ ] Ablation study: statistical vs LLM diagnoser
 - [ ] Medical dataset integration (SLE patient records)
-- [ ] Preprint: "data2skills: Extracting Interpretable Expert Knowledge via Gradient-Optimized Text Skills"
+- [ ] Submit to arXiv
 - [ ] Multi-skill composition (specialist skills that vote)
 
 ---
