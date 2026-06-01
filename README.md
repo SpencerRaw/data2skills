@@ -1,5 +1,9 @@
 # data2skills — Gradient-Optimized Expert Knowledge from Data
 
+[![Paper](https://github.com/SpencerRaw/data2skills/actions/workflows/compile-paper.yml/badge.svg)](https://github.com/SpencerRaw/data2skills/actions/workflows/compile-paper.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9+-blue)](https://pypi.org)
+
 > Traditional ML: Data → Model (weights) → Predictions (black box)  
 > **data2skills**: Data → Skills (text knowledge) → Reasoning (interpretable)  
 > *Inspired by SkillOpt (Microsoft, 2026) and SkillGrad*
@@ -155,20 +159,24 @@ data2skills/
 
 ---
 
-## Results (5-fold CV, Statistical Diagnoser)
+## Results (10-fold CV, Statistical Diagnoser)
 
-| Dataset | Method | Accuracy | Rules |
-|---------|--------|----------|-------|
-| **Breast Cancer** | d2s (seed) | 64.3% ± 6.7 | 4 |
-| (569 samples) | d2s (optimized) | **83.5% ± 4.1** | 8 |
-| | Decision Tree (d=5) | 92.8% ± 2.3 | 15 |
-| | Random Forest | 95.6% ± 1.2 | -- |
-| **Iris** | d2s (optimized) | **94.7% ± 2.9** | 6 |
-| (150 samples) | Decision Tree | 95.3% ± 3.1 | 7 |
-| **Wine** | d2s (optimized) | **91.0% ± 3.6** | 7 |
-| (178 samples) | Decision Tree | 89.3% ± 4.8 | 8 |
+| Dataset | Method | Accuracy | F1 | Rules |
+|---------|--------|----------|-----|-------|
+| **Breast Cancer** | d2s (seed) | 65.6% ± 8.1 | 78.2% ± 5.7 | 4 |
+| (569 samples, 30 feat) | d2s (optimized) | **84.4% ± 3.5** | 82.9% ± 4.8 | 8 |
+| | Decision Tree (d=5) | 93.2% ± 3.4 | 92.6% ± 3.7 | 16 |
+| | Random Forest | 95.6% ± 2.4 | 95.3% ± 2.6 | -- |
+| **Diabetes** | d2s (seed) | 67.0% ± 6.6 | 70.3% ± 6.3 | 4 |
+| (442 samples, 10 feat) | d2s (optimized) | **70.8% ± 6.2** | 70.8% ± 6.1 | 7 |
+| | Decision Tree (d=5) | 69.0% ± 5.2 | 68.8% ± 5.4 | 28 |
+| | Random Forest | 73.1% ± 4.1 | 73.0% ± 4.1 | -- |
+| **Wine** | d2s (optimized) | **61.3% ± 10.8** | 61.6% ± 12.9 | 6 |
+| (178 samples, 13 feat) | Decision Tree | 90.5% ± 6.6 | 90.8% ± 6.4 | 11 |
+| **Iris** | d2s (optimized) | **52.0% ± 7.8** | 55.5% ± 10.7 | 4 |
+| (150 samples, 4 feat) | Decision Tree | 93.3% ± 5.2 | 93.2% ± 5.3 | 9 |
 
-> With statistical diagnoser only. LLM-powered diagnoser (DeepSeek/Claude) is expected to close the remaining gap.
+> **Key finding**: On Diabetes, d2s matches Decision Tree (p=0.49, not significantly different) with **4× fewer rules** (7 vs 28). Statistical diagnoser only — LLM-powered diagnoser expected to improve results.
 
 ---
 
