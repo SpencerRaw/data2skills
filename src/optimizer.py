@@ -8,6 +8,7 @@ The core optimization loop:
 5. Momentum: accumulate recurring diagnostic patterns
 """
 
+from __future__ import annotations
 import copy
 from dataclasses import dataclass, field
 from typing import Optional, Callable
@@ -79,13 +80,14 @@ class SkillOptimizer:
     
     def fit(
         self,
-        X,  # numpy array (n_samples, n_features)
-        y,  # numpy array (n_samples,)
+        X,
+        y,
         feature_names: list[str],
         target_names: list[str],
         domain: str = "classification",
         skill_name: str = "optimized_skill",
         progress_callback: Optional[Callable] = None,
+        label_map: Optional[dict] = None,
     ) -> Skill:
         """Run the full optimization loop.
         
@@ -122,7 +124,7 @@ class SkillOptimizer:
         
         state = OptimizationState(
             skill=skill,
-            best_val_score=self.evaluator.evaluate(skill, X_val, y_val).accuracy,
+            best_val_score=self.evaluator.evaluate(skill, X_val, y_val, feature_names, label_map).accuracy,
             best_skill=copy.deepcopy(skill),
         )
         
@@ -147,7 +149,7 @@ class SkillOptimizer:
                 y_batch = y_train[batch_start:batch_end]
                 
                 # Forward pass
-                result = self.evaluator.evaluate(state.skill, X_batch, y_batch)
+                result = self.evaluator.evaluate(state.skill, X_batch, y_batch, feature_names, label_map)
                 epoch_losses.append(1 - result.accuracy)
                 
                 # Find failures
@@ -177,7 +179,7 @@ class SkillOptimizer:
                 )
                 
                 # Validation gate
-                candidate_score = self.evaluator.evaluate(candidate, X_val, y_val).accuracy
+                candidate_score = self.evaluator.evaluate(candidate, X_val, y_val, feature_names, label_map).accuracy
                 
                 if candidate_score > state.best_val_score + self.config.min_delta:
                     state.skill = candidate
@@ -196,7 +198,7 @@ class SkillOptimizer:
             
             # Epoch summary
             avg_loss = np.mean(epoch_losses) if epoch_losses else 0
-            val_score = self.evaluator.evaluate(state.skill, X_val, y_val).accuracy
+            val_score = self.evaluator.evaluate(state.skill, X_val, y_val, feature_names, label_map).accuracy
             
             state.history.append({
                 "epoch": epoch,

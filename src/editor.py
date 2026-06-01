@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Skill editor: applies bounded add/delete/modify edits to a skill document."""
 
 import copy

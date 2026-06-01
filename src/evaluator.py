@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Skill evaluator: apply skill to data and compute metrics."""
 
 from dataclasses import dataclass, field
@@ -41,8 +42,14 @@ class SkillEvaluator:
         X,  # numpy array
         y,  # numpy array
         feature_names: Optional[list[str]] = None,
+        label_map: Optional[dict] = None,
     ) -> EvalResult:
-        """Evaluate skill on a dataset. Returns EvalResult."""
+        """Evaluate skill on a dataset. Returns EvalResult.
+        
+        Args:
+            label_map: Optional dict mapping string predictions to numeric labels.
+                       e.g. {'malignant': 0, 'benign': 1}
+        """
         import numpy as np
         
         if feature_names is None:
@@ -55,6 +62,10 @@ class SkillEvaluator:
             pred, did_match = self._apply_skill_to_row(skill, X[i], feature_names)
             predictions.append(pred)
             matched.append(did_match)
+        
+        # Map string predictions to numeric if label_map provided
+        if label_map:
+            predictions = [label_map.get(p, -1) for p in predictions]
         
         matched_arr = np.array(matched)
         pred_arr = np.array(predictions)

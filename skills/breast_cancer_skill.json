@@ -1,0 +1,144 @@
+{
+  "name": "breast_cancer_diagnostic_optimized",
+  "domain": "medical_diagnostics",
+  "features": [
+    "mean radius",
+    "mean texture",
+    "mean perimeter",
+    "mean area",
+    "mean smoothness",
+    "mean compactness",
+    "mean concavity",
+    "mean concave points",
+    "mean symmetry",
+    "mean fractal dimension",
+    "radius error",
+    "texture error",
+    "perimeter error",
+    "area error",
+    "smoothness error",
+    "compactness error",
+    "concavity error",
+    "concave points error",
+    "symmetry error",
+    "fractal dimension error",
+    "worst radius",
+    "worst texture",
+    "worst perimeter",
+    "worst area",
+    "worst smoothness",
+    "worst compactness",
+    "worst concavity",
+    "worst concave points",
+    "worst symmetry",
+    "worst fractal dimension"
+  ],
+  "target": "target",
+  "version": 1,
+  "performance": {
+    "accuracy": 0.8901098901098901,
+    "n_rules": 9,
+    "epochs_trained": 0
+  },
+  "rules": [
+    {
+      "id": "R1",
+      "condition": "worst concave points > 0.18",
+      "prediction": "malignant",
+      "confidence": 0.6,
+      "support": [
+        138,
+        138
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "R2",
+      "condition": "mean concave points > 0.09",
+      "prediction": "malignant",
+      "confidence": 0.6,
+      "support": [
+        138,
+        138
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "R3",
+      "condition": "worst concave points < 0.07",
+      "prediction": "benign",
+      "confidence": 0.6,
+      "support": [
+        226,
+        226
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "R4",
+      "condition": "mean concave points < 0.03",
+      "prediction": "benign",
+      "confidence": 0.6,
+      "support": [
+        226,
+        226
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "R5",
+      "condition": "mean radius > 15.758",
+      "prediction": "malignant",
+      "confidence": 0.5,
+      "support": [
+        0,
+        0
+      ],
+      "source": "optimized"
+    },
+    {
+      "id": "R6",
+      "condition": "mean texture > 19.918",
+      "prediction": "malignant",
+      "confidence": 0.5,
+      "support": [
+        0,
+        0
+      ],
+      "source": "optimized"
+    },
+    {
+      "id": "R7",
+      "condition": "mean perimeter > 102.945",
+      "prediction": "malignant",
+      "confidence": 0.5,
+      "support": [
+        0,
+        0
+      ],
+      "source": "optimized"
+    },
+    {
+      "id": "R8",
+      "condition": "mean area > 630.333",
+      "prediction": "benign",
+      "confidence": 0.5,
+      "support": [
+        0,
+        0
+      ],
+      "source": "optimized"
+    },
+    {
+      "id": "R9",
+      "condition": "mean smoothness > 0.092",
+      "prediction": "benign",
+      "confidence": 0.5,
+      "support": [
+        0,
+        0
+      ],
+      "source": "optimized"
+    }
+  ]
+}
