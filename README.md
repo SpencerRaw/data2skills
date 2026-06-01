@@ -1,7 +1,7 @@
 # data2skills — Gradient-Optimized Expert Knowledge from Data
 
 [![Paper](https://github.com/SpencerRaw/data2skills/actions/workflows/compile-paper.yml/badge.svg)](https://github.com/SpencerRaw/data2skills/actions/workflows/compile-paper.yml)
-[![Preprint](https://img.shields.io/badge/ResearchGate-coming%20soon-00ccbb)](https://www.researchgate.net)
+[![Preprint](https://img.shields.io/badge/ResearchGate-405584841-00ccbb)](https://www.researchgate.net/publication/405584841)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](https://pypi.org)
 
