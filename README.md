@@ -185,14 +185,15 @@ data2skills/
 
 - [x] Project design + architecture
 - [x] Core optimizer loop (text-gradient descent)
-- [x] Classic dataset experiments (Breast Cancer, Iris, Wine)
-- [x] Head-to-head comparison vs 5 ML baselines with k-fold CV
+- [x] Classic dataset experiments (4 UCI, 10-fold CV)
+- [x] Head-to-head comparison vs 5 ML baselines
 - [x] LLM-powered diagnoser (DeepSeek integration)
-- [x] Preprint draft (LaTeX)
-- [ ] Ablation study: statistical vs LLM diagnoser
-- [ ] Medical dataset integration (SLE patient records)
-- [ ] Submit to arXiv
+- [x] Preprint on ResearchGate
+- [x] Ablation study: statistical vs LLM diagnoser
 - [ ] Multi-skill composition (specialist skills that vote)
+- [ ] Unsupervised phenotype discovery (SLE paper #2)
+- [ ] LLM diagnoser on multi-class (Iris/Wine improvement)
+- [ ] Submit to arXiv (once endorsed)
 
 ---
 
