@@ -1,0 +1,22 @@
+{
+  "seed": {
+    "accuracy": 0.6929824561403509,
+    "n_rules": 4
+  },
+  "statistical": {
+    "diagnoser": "statistical",
+    "accuracy": 0.8421052631578947,
+    "f1": 0.8198495688864429,
+    "n_rules": 7,
+    "coverage": 0.9912280701754386,
+    "skill_text": "# ablation_statistical\nDomain: medical  \nFeatures: mean radius, mean texture, mean perimeter, mean area, mean smoothness, mean compactness, mean concavity, mean concave points, mean symmetry, mean fractal dimension, radius error, texture error, perimeter error, area error, smoothness error, compactness error, concavity error, concave points error, symmetry error, fractal dimension error, worst radius, worst texture, worst perimeter, worst area, worst smoothness, worst compactness, worst concavit"
+  },
+  "llm": {
+    "diagnoser": "llm",
+    "accuracy": 0.8508771929824561,
+    "f1": 0.8233524747060432,
+    "n_rules": 9,
+    "coverage": 1.0,
+    "skill_text": "# ablation_llm\nDomain: medical  \nFeatures: mean radius, mean texture, mean perimeter, mean area, mean smoothness, mean compactness, mean concavity, mean concave points, mean symmetry, mean fractal dimension, radius error, texture error, perimeter error, area error, smoothness error, compactness error, concavity error, concave points error, symmetry error, fractal dimension error, worst radius, worst texture, worst perimeter, worst area, worst smoothness, worst compactness, worst concavity, worst"
+  }
+}
