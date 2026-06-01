@@ -190,7 +190,7 @@ data2skills/
 - [x] LLM-powered diagnoser (DeepSeek integration)
 - [x] Preprint on ResearchGate
 - [x] Ablation study: statistical vs LLM diagnoser
-- [ ] Multi-skill composition (specialist skills that vote)
+- [x] Multi-skill composition (ensemble: +3.5pp over single skill)
 - [ ] Unsupervised phenotype discovery (SLE paper #2)
 - [x] Multi-class: DT→Skill conversion (Iris 94%, Wine 90%)
 - [ ] Submit to arXiv (once endorsed)
