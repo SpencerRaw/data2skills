@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data2skills"
+version = "0.2.0"
+description = "Gradient-Optimized Expert Knowledge from Data — invert the ML pipeline to produce interpretable text skills"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "SpencerRaw"}]
+keywords = ["machine-learning", "interpretability", "skill-optimization", "text-gradient", "explainable-ai"]
+
+dependencies = [
+    "numpy>=1.21",
+    "scikit-learn>=1.0",
+    "scipy>=1.7",
+]
+
+[project.optional-dependencies]
+llm = ["openai>=1.0"]
+dev = ["pytest", "pytest-cov"]
+all = ["data2skills[llm,dev]"]
+
+[project.urls]
+Homepage = "https://github.com/SpencerRaw/data2skills"
+Repository = "https://github.com/SpencerRaw/data2skills"
