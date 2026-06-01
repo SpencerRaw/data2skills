@@ -203,6 +203,19 @@ data2skills/
 - **SkillGrad**: Wang et al., "SkillGrad: Optimizing Agent Skills Like Gradient Descent", arXiv 2605.27760, 2026
 - **TextGrad**: Yuksekgonul et al., "TextGrad: Automatic Differentiation via Text", arXiv 2406.07496, 2024
 
+## Cite
+
+```bibtex
+@misc{xu2026data2skills,
+  title={data2skills: Extracting Interpretable Expert Knowledge
+         via Gradient-Optimized Text Skills},
+  author={Yiwei Xu},
+  year={2026},
+  note={Preprint. Code available at \url{https://github.com/SpencerRaw/data2skills}},
+  url={https://www.researchgate.net/publication/405584841}
+}
+```
+
 ## License
 
 MIT
