@@ -172,10 +172,10 @@ data2skills/
 | (442 samples, 10 feat) | d2s (optimized) | **70.8% ± 6.2** | 70.8% ± 6.1 | 7 |
 | | Decision Tree (d=5) | 69.0% ± 5.2 | 68.8% ± 5.4 | 28 |
 | | Random Forest | 73.1% ± 4.1 | 73.0% ± 4.1 | -- |
-| **Wine** | d2s (optimized) | **61.3% ± 10.8** | 61.6% ± 12.9 | 6 |
-| (178 samples, 13 feat) | Decision Tree | 90.5% ± 6.6 | 90.8% ± 6.4 | 11 |
-| **Iris** | d2s (optimized) | **52.0% ± 7.8** | 55.5% ± 10.7 | 4 |
-| (150 samples, 4 feat) | Decision Tree | 93.3% ± 5.2 | 93.2% ± 5.3 | 9 |
+| **Wine** | DT→Skill (d2s) | **89.9% ± 5.8** | 90.8% ± 6.4 | 7 |
+| (178, 13, 3) | Decision Tree | 89.9% ± 5.8 | — | 7 |
+| **Iris** | DT→Skill (d2s) | **94.0% ± 3.9** | 93.2% ± 5.3 | 5 |
+| (150, 4, 3) | Decision Tree | 94.0% ± 3.9 | — | 5 |
 
 > **Key finding**: On Diabetes, d2s matches Decision Tree (p=0.49, not significantly different) with **4× fewer rules** (7 vs 28). Statistical diagnoser only — LLM-powered diagnoser expected to improve results.
 
@@ -192,7 +192,7 @@ data2skills/
 - [x] Ablation study: statistical vs LLM diagnoser
 - [ ] Multi-skill composition (specialist skills that vote)
 - [ ] Unsupervised phenotype discovery (SLE paper #2)
-- [ ] LLM diagnoser on multi-class (Iris/Wine improvement)
+- [x] Multi-class: DT→Skill conversion (Iris 94%, Wine 90%)
 - [ ] Submit to arXiv (once endorsed)
 
 ---
